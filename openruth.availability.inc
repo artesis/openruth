@@ -117,8 +117,8 @@ function _openruth_set_table_html(&$h) {
   // set table header
   $variables['header'] = array(
     'placement' => t('Placement'),
-    'copies' => t('Copies'),
     'home' => t('At home'),
+    'copies' => t('Copies'),
   );
   // set table rows
   $variables['rows'] = _openruth_set_rows($h);
@@ -140,15 +140,15 @@ function _openruth_set_rows($h) {
     foreach ($h['holdings'] as $key => $data) {
       $row = array();
       $row['placement'] = $data['placement'];
-      $row['copies'] = $data['copiesCount'];
       $row['home'] = $data['copiesAvailableCount'];
+      $row['copies'] = $data['copiesCount'];
       $rows[] = $row;
     }
     // Add row (totals).
     $row = array();
     $row['data']['Library'] = t('Total');
-    $row['data']['Copies'] = $h['total_count'];
     $row['data']['Home'] = $h['reservable_count'];
+    $row['data']['Copies'] = $h['total_count'];
     $row['class'] = array(drupal_html_class('availability_holdings_last_row'));
     $rows[] = $row;
 
