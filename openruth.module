@@ -327,9 +327,6 @@ function openruth_profile2_presave($profile2) {
         $changes['mobile_phone'] = $profile2->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value'];
       }
     }
-    else {
-      $changes['mobile_phone'] = '';
-    }
   }
 
   if (empty($changes)) {
