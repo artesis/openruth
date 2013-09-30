@@ -119,7 +119,7 @@ function openruth_profile_form_validate(&$form, &$form_state) {
  *
  * This is a regular form callback.
  */
-function openruth_settings_form() {
+function openruth_settings_form($form, $form_state) {
   $form['openruth'] = array(
     '#type' => 'fieldset',
     '#title' => t('OpenRuth service settings'),
@@ -155,7 +155,58 @@ function openruth_settings_form() {
     '#description' => t('Logs requests to the OpenRuth webservice. Sensitive information such as CPR number and PIN code is stripped from the requests.'),
   );
 
+  $form['openruth']['blacklist'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Placement blacklist'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+
+  $placements = array();
+  $cid = 'ruth-placements';
+  $buffed_placements = cache_get($cid);
+
+  if ($buffed_placements) {
+    $placements = $buffed_placements->data;
+  }
+
+  if (isset($form_state['triggering_element']) && $form_state['triggering_element']['#name'] == 'fetch-placements') {
+    $placements = openruth_allowed_branches();
+    cache_set($cid, $placements);
+  }
+
+  $form['openruth']['blacklist']['openruth_blacked_placements'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Placements'),
+    '#description' => t('Select which placements are to be HIDDEN'),
+    '#options' => $placements,
+    '#default_value' => variable_get('openruth_blacked_placements', array()),
+    '#prefix' => '<div id="openruth-placements">',
+    '#suffix' => '</div>',
+  );
+
+  $form['openruth']['blacklist']['fetch_placements'] = array(
+    '#type' => 'button',
+    '#name' => 'fetch-placements',
+    '#value' => t('Fetch/Update placements'),
+    '#ajax' => array(
+      'method' => 'replace',
+      'wrapper' => 'openruth-placements',
+      'effect' => 'fade',
+      'callback' => '_openruth_fetch_placements',
+    ),
+  );
+
   return system_settings_form($form);
+}
+
+/**
+ * AJAX callback for placements insertion.
+ *
+ * @see openruth_settings_form(),
+ */
+function _openruth_fetch_placements(&$form, &$form_state) {
+  return $form['openruth']['blacklist']['openruth_blacked_placements'];
 }
 
 /**
@@ -661,4 +712,13 @@ function openruth_seek_reserved_item($faust_number) {
   }
 
   return $item;
+}
+
+/**
+ * Helper function to filter blacked placements setted in BE.
+ *
+ * @see _openruth_set_holdings(),
+ */
+function _openruth_filter_blacked($ele) {
+  return is_string($ele);
 }

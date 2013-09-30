@@ -34,6 +34,8 @@ function _openruth_get_holdings($res) {
  */
 function _openruth_set_holdings($res) {
   $holdings = array();
+  $blacked_placements = array_filter(variable_get('openruth_blacked_placements', array()), '_openruth_filter_blacked');
+
   foreach ($res->holding as $holding) {
     $h = _openruth_init_holding($holding);
     $itemHoldings = isset($holding->itemHoldings) ? $holding->itemHoldings : NULL;
@@ -47,8 +49,8 @@ function _openruth_set_holdings($res) {
       foreach ($itemHoldings as $itemHolding) {
         // remember to count ordersCount
         $h['reserved_count'] += $itemHolding->ordersCount;
-        _openruth_set_locations($h, $itemHolding);
-        _openruth_set_periodicals($h, $itemHolding);
+        _openruth_set_locations($h, $itemHolding, $blacked_placements);
+        _openruth_set_periodicals($h, $itemHolding, $blacked_placements);
       }
     }
     if ($h['is_periodical']) {
@@ -187,7 +189,7 @@ function _openruth_periodicals_unique_holdings($holdings) {
 /**
  *
  */
-function _openruth_set_periodicals(&$h, $itemHolding) {
+function _openruth_set_periodicals(&$h, $itemHolding, $blacked_placements) {
   if (isset($itemHolding->itemSerialPartId) || isset($itemHolding->itemSerialPartVolume) || isset($itemHolding->itemSerialPartIssue)) {
     $issue = array(
       'local_id' => $itemHolding->itemSerialPartId,
@@ -198,6 +200,10 @@ function _openruth_set_periodicals(&$h, $itemHolding) {
     $item_loc = isset($itemHolding->itemLocation) ? $itemHolding->itemLocation : $itemHolding->itemComingLocation;
 
     foreach ($item_loc as $location) {
+      if (in_array($location->agencyBranchId->agencyBranchCode, $blacked_placements)) {
+        continue;
+      }
+
       $loc = array();
       if (isset($location->agencyBranchId->agencyBranchName)) {
         $loc[] = $location->agencyBranchId->agencyBranchName;
@@ -225,15 +231,18 @@ function _openruth_set_periodicals(&$h, $itemHolding) {
   }
 }
 
-function _openruth_set_locations(&$h, $itemHolding) {
+function _openruth_set_locations(&$h, $itemHolding, $blacked_placements) {
   $holding_reservable = FALSE;
   $fields = array('itemLocation', 'itemComingLocation');
 
   foreach ($fields as $field) {
     if (isset($itemHolding->{$field})) {
       foreach ($itemHolding->{$field} as $itemLocation) {
-        $data = array();
+        if (in_array($itemLocation->agencyBranchId->agencyBranchCode, $blacked_placements)) {
+          continue;
+        }
 
+        $data = array();
         $location_available = 0;
 
         if ($itemLocation->orderAllowed) {
