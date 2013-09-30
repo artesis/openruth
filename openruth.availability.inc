@@ -200,7 +200,7 @@ function _openruth_set_periodicals(&$h, $itemHolding, $blacked_placements) {
     $item_loc = isset($itemHolding->itemLocation) ? $itemHolding->itemLocation : $itemHolding->itemComingLocation;
 
     foreach ($item_loc as $location) {
-      if (in_array($location->agencyBranchId->agencyBranchCode, $blacked_placements)) {
+      if (in_array(strtolower($location->agencyBranchId->agencyBranchCode), $blacked_placements)) {
         continue;
       }
 
@@ -238,7 +238,7 @@ function _openruth_set_locations(&$h, $itemHolding, $blacked_placements) {
   foreach ($fields as $field) {
     if (isset($itemHolding->{$field})) {
       foreach ($itemHolding->{$field} as $itemLocation) {
-        if (in_array($itemLocation->agencyBranchId->agencyBranchCode, $blacked_placements)) {
+        if (in_array(strtolower($itemLocation->agencyBranchId->agencyBranchCode), $blacked_placements)) {
           continue;
         }
 
@@ -260,7 +260,6 @@ function _openruth_set_locations(&$h, $itemHolding, $blacked_placements) {
           $location_available += $itemLocation->copiesAvailableCount;
 
           $data['copiesAvailableCount'] = $itemLocation->copiesAvailableCount;
-
         }
         $parts = array();
         if (isset($itemLocation->agencyBranchId->agencyBranchName)) {
