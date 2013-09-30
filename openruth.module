@@ -175,6 +175,13 @@ function openruth_settings_form($form, $form_state) {
     cache_set($cid, $placements);
   }
 
+  // Avoid different casing issues.
+  foreach ($placements as $k => $placement) {
+    unset($placements[$k]);
+
+    $placements[strtolower($k)] = $placement;
+  }
+
   $form['openruth']['blacklist']['openruth_blacked_placements'] = array(
     '#type' => 'checkboxes',
     '#title' => t('Placements'),
