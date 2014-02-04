@@ -1,21 +1,24 @@
 <?php
-// $Id$
+/**
+ * @file
+ * Implements the OpenruthClient library to talk with the web-service.
+ */
 
 class OpenruthClient {
 
   /**
    * Our SOAP client.
-   **/
+   */
   private $client;
 
   /**
    * The OpenRuth wsdl url.
-   **/
+   */
   private $wsdl_url;
 
   /**
    * The OpenRuth agency id.
-   **/
+   */
   private $agency_id;
 
   /**
@@ -44,10 +47,19 @@ class OpenruthClient {
       'features' => SOAP_SINGLE_ELEMENT_ARRAYS,
       'exceptions' => TRUE,
     );
+
+    // Enable logging.
     if (variable_get('openruth_enable_logging', FALSE)) {
       $this->logging = TRUE;
       $options['trace'] = TRUE;
     }
+
+    // User proxy.
+    if ($proxy = variable_get('openruth_proxy', FALSE)) {
+      $options['proxy_host'] = $proxy['host'];
+      $options['proxy_port'] = $proxy['port'];
+    }
+
     $this->client = new SoapClient($this->wsdl_url, $options);
     self::$salt = rand();
   }
@@ -80,7 +92,7 @@ class OpenruthClient {
       // shortest alternative.
       $replace_values = array();
       foreach (new RecursiveIteratorIterator(new RecursiveArrayIterator($sensitive)) as $value) {
-        $replace_values['>' . $value . '<'] = '>' . substr(md5($value . self::$salt), 0, strlen($value)) . '<';
+        $replace_values['>' . $value . '<'] = '>' . drupal_substr(md5($value . self::$salt), 0, drupal_strlen($value)) . '<';
       }
       if (isset($time)) {
         watchdog('openruth', 'Sending request (@seconds sec): @xml', array('@xml' => strtr($this->client->__getLastRequest(), $replace_values), '@seconds' => $time), WATCHDOG_DEBUG);
@@ -104,8 +116,8 @@ class OpenruthClient {
     ));
 
     $this->log();
-    return $res;
 
+    return $res;
   }
 
   /**

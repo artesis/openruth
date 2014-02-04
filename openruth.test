@@ -127,8 +127,7 @@ class OpenruthReservationProviderImplementationTestCase extends DingReservationP
   }
 
   function getUser() {
-    global $user;
-    ding_user_save_creds(array('creds' => array('name' => '1111111111', 'pass' => '1111')), $user);
+    ding_user_save_creds(array('creds' => array('name' => '1111111111', 'pass' => '1111')));
     return $user;
   }
 
@@ -159,8 +158,7 @@ class OpenruthLoanProviderImplementationTestCase extends DingLoanProviderImpleme
   }
 
   function getUser() {
-    global $user;
-    ding_user_save_creds(array('creds' => array('name' => '1111111111', 'pass' => '1111')), $user);
+    ding_user_save_creds(array('creds' => array('name' => '1111111111', 'pass' => '1111')));
     return $user;
   }
 }
@@ -181,8 +179,7 @@ class OpenruthDebtProviderImplementationTestCase extends DingDebtProviderImpleme
   }
 
   function getUser() {
-    global $user;
-    ding_user_save_creds(array('creds' => array('name' => '1111111111', 'pass' => '1111')), $user);
+    ding_user_save_creds(array('creds' => array('name' => '1111111111', 'pass' => '1111')));
     return $user;
   }
 }

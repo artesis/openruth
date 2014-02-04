@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * Handles fees and payment informtion in relation to OpenRuth.
+ */
 
 /**
  * Get list of unpayed fees
@@ -28,10 +32,22 @@ function openruth_debt_list($account) {
   return $result;
 }
 
+/**
+ * Callback function used to update OpenRuth after a payment have been received.
+ *
+ * @param string $amount
+ *  The amount that have to be payed.
+ * @param array $debt_ids
+ *  The payment id's.
+ * @param string $order_id
+ *  The payments oroder id.
+ * @return boolean
+ *  If TRUE the payment was received or FALSE on failur.
+ */
 function openruth_debt_payment_received($amount, $debt_ids = array(), $order_id = NULL) {
   $creds = ding_user_get_creds();
 
-  // check that $amount adds up to the debts
+  // Check that $amount adds up to the debts.
   $status = _openruth_user_status($creds);
   if ($amount != $status->userInfo->userFeesTotal) {
     watchdog('openruth', 'Payment of amount %amount does not match the full amount. Payment was cancelled.', array(
@@ -42,7 +58,7 @@ function openruth_debt_payment_received($amount, $debt_ids = array(), $order_id 
   return openruth_client_invoke('add_payment', $creds['name'], $amount, $order_id);
 }
 
-/*
+/**
  * Note: Debts do NOT add up to total.
  * The payable amount is returned in <userInfo><userFeesTotal>0.00</userFeesTotal></userInfo>,
  * and does not include items where billing are handled elsewhere.
