@@ -9,6 +9,7 @@ function openruth_availability_holdings($provider_ids) {
     watchdog('openruth', '@method error: “@message”', array('@method' => 'get_holdings', '@message' => $res->holding), WATCHDOG_ERROR);
     return array();
   }
+
   return _openruth_get_holdings($res);
 }
 
@@ -215,6 +216,10 @@ function _openruth_set_periodicals(&$h, $itemHolding, $blacked_placements) {
 
       if (isset($location->agencyPlacementId->agencyPlacementName)) {
         $loc[] = $location->agencyPlacementId->agencyPlacementName;
+      }
+
+      if (isset($location->agencyDepartmentId->agencyDepartmentName)) {
+        $loc[] = $location->agencyDepartmentId->agencyDepartmentName;
       }
 
       $issue['placement'][] = array(
