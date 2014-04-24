@@ -11,21 +11,38 @@
  * login.
  */
 function openruth_wayf_login_credentials($authentication_attributes) {
-  $hash = variable_get('openruth_wayf_hash', '');
-  $credentials = array();
+  $hash = variable_get('openruth_wayf_hash', NULL);
 
-  if ($hash) {
-    $credentials = array(
-      'name' => $authentication_attributes['schacPersonalUniqueID'],
-      'pass' => $hash,
+  // Set message that hash value was not found.
+  if (!$hash) {
+    watchdog('openruth', t('The WAYF hash value has not been set in setting.php as $conf[\'openruth_wayf_hash\'] and WAYF login will fail'), WATCHDOG_ERROR);
+
+    return array();
+  }
+
+  $cpr = module_invoke(
+    'ding_ucfmd',
+    'retrieve_cpr',
+    $authentication_attributes['organizationName'],
+    $authentication_attributes['eduPersonPrincipalName']
+  );
+
+  // Set message that CPR value was not found.
+  if (!$cpr) {
+    watchdog(
+      'openruth',
+      t('The CPR value has not been retrieved from UCFMD with attributes <pre>!t</pre>'),
+      array('!t' => var_export($authentication_attributesm, true)),
+      WATCHDOG_ERROR
     );
-  }
-  else {
-    // Set message that hash value was not found.
-    watchdog('openruth', 'The WAYF hash value has not been set in setting.php as $conf[\'openruth_wayf_hash\'] and WAYF login will fail', WATCHDOG_ERROR);
+
+    return array();
   }
 
-  return $credentials;
+  return array(
+    'name' => $cpr,
+    'pass' => $hash,
+  );
 }
 
 /**
@@ -35,8 +52,11 @@ function openruth_wayf_login_credentials($authentication_attributes) {
  */
 function openruth_wayf_attributes() {
   return array(
-    'schacPersonalUniqueID' => array(
-      'field' => 'CPR',
+    'organizationName' => array(
+      'field' => NULL,
+    ),
+    'eduPersonPrincipalName' => array(
+      'field' => NULL,
     ),
   );
 }
