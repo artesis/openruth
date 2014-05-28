@@ -621,41 +621,50 @@ function openruth_get_reservation_pause($profile2) {
 
 /**
  * Get user status.
- *
- * Session cached for efficiency.
- * @todo; should this be cached in drupal instead ?? there might be an issue if drupal cache is invalidated
  */
 function _openruth_user_status($creds = NULL, $reset = FALSE) {
-  // Flush cache if creds is not specified.
-  if ($reset || !is_array($_SESSION['openruth_user_status']) || !$creds) {
-    $_SESSION['openruth_user_status'] = array();
-  }
   if (!$creds) {
     return;
   }
 
-  $id = hash('sha512', $creds['name'] . $creds['pass']);
+  $cid = hash('sha512', $creds['name'] . $creds['pass']);
+  $cache = NULL;
 
-  if (!isset($_SESSION['openruth_user_status'][$id]) || $_SESSION['openruth_user_status'][$id]['time'] < (REQUEST_TIME - 300)) {
-    $status = openruth_client_invoke('user_status', $creds['name'], $creds['pass']);
-    if ($status && !is_string($status)) {
-      if (isset($status->userInfo) && isset($status->userInfo->userPinCode)) {
+  if ($reset) {
+    drupal_set_message('reset');
+    cache_clear_all($cid, 'cache');
+    drupal_static_reset(__FUNCTION__);
+  }
+
+  $status = &drupal_static(__FUNCTION__, NULL);
+  if (!$status) {
+    $cache = cache_get($cid, 'cache');
+    if (isset($cache->data)) {
+      drupal_set_message('cache');
+      $status = $cache->data;
+    }
+    else {drupal_set_message('service');
+      $status = openruth_client_invoke('user_status', $creds['name'], $creds['pass']);
+
+      if ($status && !is_string($status)) {
         // Don't cache user pass.
-        unset($status->userInfo->userPinCode);
+        if (isset($status->userInfo) && isset($status->userInfo->userPinCode)) {
+          unset($status->userInfo->userPinCode);
+        }
+
+        cache_set($cid, $status, 'cache', time() + 300);
       }
-      $_SESSION['openruth_user_status'][$id] = array(
-        'time' => REQUEST_TIME,
-        'data' => $status,
-      );
-    }
-    elseif (is_string($status)) {
-      watchdog('openruth', 'Error fetching user status @error', array('@error' => $status), WATCHDOG_ERROR);
-      return;
+      elseif (is_string($status)) {
+        watchdog('openruth', 'Error fetching user status @error', array('@error' => $status), WATCHDOG_ERROR);
+      }
     }
   }
-  if ($_SESSION['openruth_user_status'][$id]) {
-    return $_SESSION['openruth_user_status'][$id]['data'];
+  else {
+    drupal_set_message('static');
   }
+
+  return $status;
+
 }
 
 /**
