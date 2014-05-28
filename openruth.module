@@ -631,7 +631,6 @@ function _openruth_user_status($creds = NULL, $reset = FALSE) {
   $cache = NULL;
 
   if ($reset) {
-    drupal_set_message('reset');
     cache_clear_all($cid, 'cache');
     drupal_static_reset(__FUNCTION__);
   }
@@ -640,10 +639,9 @@ function _openruth_user_status($creds = NULL, $reset = FALSE) {
   if (!$status) {
     $cache = cache_get($cid, 'cache');
     if (isset($cache->data)) {
-      drupal_set_message('cache');
       $status = $cache->data;
     }
-    else {drupal_set_message('service');
+    else {
       $status = openruth_client_invoke('user_status', $creds['name'], $creds['pass']);
 
       if ($status && !is_string($status)) {
@@ -658,9 +656,6 @@ function _openruth_user_status($creds = NULL, $reset = FALSE) {
         watchdog('openruth', 'Error fetching user status @error', array('@error' => $status), WATCHDOG_ERROR);
       }
     }
-  }
-  else {
-    drupal_set_message('static');
   }
 
   return $status;
