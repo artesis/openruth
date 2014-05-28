@@ -653,13 +653,12 @@ function _openruth_user_status($creds = NULL, $reset = FALSE) {
         cache_set($cid, $status, 'cache', time() + 300);
       }
       elseif (is_string($status)) {
-        watchdog('openruth', 'Error fetching user status @error', array('@error' => $status), WATCHDOG_ERROR);
+        watchdog('openruth', t('Error fetching user status @error'), array('@error' => $status), WATCHDOG_ERROR);
       }
     }
   }
 
   return $status;
-
 }
 
 /**
