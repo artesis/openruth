@@ -31,6 +31,10 @@ function openruth_ding_provider() {
         'prefix' => 'loan',
         'file' => drupal_get_path('module', 'openruth') . '/openruth.loan.inc',
       ),
+      'ill' => array(
+        'prefix' => 'ill',
+        'file' => drupal_get_path('module', 'openruth') . '/openruth.loan.inc',
+      ),
       'debt' => array(
         'prefix' => 'debt',
         'file' => drupal_get_path('module', 'openruth') . '/openruth.debt.inc',
@@ -115,7 +119,7 @@ function openruth_profile_form_validate(&$form, &$form_state) {
  *
  * This is a regular form callback.
  */
-function openruth_settings_form() {
+function openruth_settings_form($form, $form_state) {
   $form['openruth'] = array(
     '#type' => 'fieldset',
     '#title' => t('OpenRuth service settings'),
@@ -151,7 +155,65 @@ function openruth_settings_form() {
     '#description' => t('Logs requests to the OpenRuth webservice. Sensitive information such as CPR number and PIN code is stripped from the requests.'),
   );
 
+  $form['openruth']['blacklist'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Placement blacklist'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+
+  $placements = array();
+  $cid = 'ruth-placements';
+  $buffed_placements = cache_get($cid);
+
+  if ($buffed_placements) {
+    $placements = $buffed_placements->data;
+  }
+
+  if (isset($form_state['triggering_element']) && $form_state['triggering_element']['#name'] == 'fetch-placements') {
+    $placements = openruth_allowed_branches();
+    cache_set($cid, $placements);
+  }
+
+  // Avoid different casing issues.
+  foreach ($placements as $k => $placement) {
+    unset($placements[$k]);
+
+    $placements[strtolower($k)] = $placement;
+  }
+
+  $form['openruth']['blacklist']['openruth_blacked_placements'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Placements'),
+    '#description' => t('Select which placements are to be HIDDEN'),
+    '#options' => $placements,
+    '#default_value' => variable_get('openruth_blacked_placements', array()),
+    '#prefix' => '<div id="openruth-placements">',
+    '#suffix' => '</div>',
+  );
+
+  $form['openruth']['blacklist']['fetch_placements'] = array(
+    '#type' => 'button',
+    '#name' => 'fetch-placements',
+    '#value' => t('Fetch/Update placements'),
+    '#ajax' => array(
+      'method' => 'replace',
+      'wrapper' => 'openruth-placements',
+      'effect' => 'fade',
+      'callback' => '_openruth_fetch_placements',
+    ),
+  );
+
   return system_settings_form($form);
+}
+
+/**
+ * AJAX callback for placements insertion.
+ *
+ * @see openruth_settings_form(),
+ */
+function _openruth_fetch_placements(&$form, &$form_state) {
+  return $form['openruth']['blacklist']['openruth_blacked_placements'];
 }
 
 /**
@@ -322,9 +384,6 @@ function openruth_profile2_presave($profile2) {
 	   $profile2->original->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value']) {
         $changes['mobile_phone'] = $profile2->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value'];
       }
-    }
-    else {
-      $changes['mobile_phone'] = '';
     }
   }
 
@@ -562,41 +621,44 @@ function openruth_get_reservation_pause($profile2) {
 
 /**
  * Get user status.
- *
- * Session cached for efficiency.
- * @todo; should this be cached in drupal instead ?? there might be an issue if drupal cache is invalidated
  */
 function _openruth_user_status($creds = NULL, $reset = FALSE) {
-  // Flush cache if creds is not specified.
-  if ($reset || !is_array($_SESSION['openruth_user_status']) || !$creds) {
-    $_SESSION['openruth_user_status'] = array();
-  }
   if (!$creds) {
     return;
   }
 
-  $id = hash('sha512', $creds['name'] . $creds['pass']);
+  $cid = hash('sha512', $creds['name'] . $creds['pass']);
+  $cache = NULL;
 
-  if (!isset($_SESSION['openruth_user_status'][$id]) || $_SESSION['openruth_user_status'][$id]['time'] < (REQUEST_TIME - 300)) {
-    $status = openruth_client_invoke('user_status', $creds['name'], $creds['pass']);
-    if ($status && !is_string($status)) {
-      if (isset($status->userInfo) && isset($status->userInfo->userPinCode)) {
+  if ($reset) {
+    cache_clear_all($cid, 'cache');
+    drupal_static_reset(__FUNCTION__);
+  }
+
+  $status = &drupal_static(__FUNCTION__, NULL);
+  if (!$status) {
+    $cache = cache_get($cid, 'cache');
+    if (isset($cache->data)) {
+      $status = $cache->data;
+    }
+    else {
+      $status = openruth_client_invoke('user_status', $creds['name'], $creds['pass']);
+
+      if ($status && !is_string($status)) {
         // Don't cache user pass.
-        unset($status->userInfo->userPinCode);
+        if (isset($status->userInfo) && isset($status->userInfo->userPinCode)) {
+          unset($status->userInfo->userPinCode);
+        }
+
+        cache_set($cid, $status, 'cache', time() + 300);
       }
-      $_SESSION['openruth_user_status'][$id] = array(
-        'time' => REQUEST_TIME,
-        'data' => $status,
-      );
-    }
-    elseif (is_string($status)) {
-      watchdog('openruth', 'Error fetching user status @error', array('@error' => $status), WATCHDOG_ERROR);
-      return;
+      elseif (is_string($status)) {
+        watchdog('openruth', t('Error fetching user status @error'), array('@error' => $status), WATCHDOG_ERROR);
+      }
     }
   }
-  if ($_SESSION['openruth_user_status'][$id]) {
-    return $_SESSION['openruth_user_status'][$id]['data'];
-  }
+
+  return $status;
 }
 
 /**
@@ -616,18 +678,14 @@ function openruth_replace_entity($item) {
 
   if (is_object($openruth_object)) {
     $pseudo_ting_object = new TingEntity();
-    $pseudo_ting_object->localId = $faust_number;
-    $pseudo_ting_object->ding_entity_id = $item->ding_entity_id;
-    $pseudo_ting_object->reply = new TingClientObject();
-    $pseudo_ting_object->reply->record['dc:title']['dkdcplus:full'] = array($openruth_object->title);
+    $pseudo_ting_object->setLocalId($faust_number);
+    $pseudo_ting_object->setDingEntityId($item->ding_entity_id);
+    $pseudo_ting_object->setTitle($openruth_object->title);
     // Unfortunately, openruth response doesnt contain anything about the loaned item type.
     //$pseudo_ting_object->reply->record['dc:type']['dkdcplus:BibDK-Type'] = array();
-    $pseudo_ting_object->reply->record['dc:creator']['dkdcplus:aut'] = array($openruth_object->author);
-    $pseudo_ting_object->reply->record['dc:date'][''] = array($openruth_object->publication_year);
+    $pseudo_ting_object->setCreators(array($openruth_object->author));
+    $pseudo_ting_object->setDate($openruth_object->publication_year);
 
-    $pseudo_ting_object->ting_title = array(LANGUAGE_NONE => array(array('id' => $item->ding_entity_id)));
-    //$pseudo_ting_object->ting_type = array(LANGUAGE_NONE => array(array('id' => $item->ding_entity_id)));
-    $pseudo_ting_object->ting_author = array(LANGUAGE_NONE => array(array('id' => $item->ding_entity_id)));
     $pseudo_ting_object->ting_cover = array(LANGUAGE_NONE => array(array('local_id' => $item->ding_entity_id)));
     $pseudo_ting_object->ding_entity_type = 'ding_entity';
     $pseudo_ting_object->provider_id = $faust_number;
@@ -664,4 +722,13 @@ function openruth_seek_reserved_item($faust_number) {
   }
 
   return $item;
+}
+
+/**
+ * Helper function to filter blacked placements setted in BE.
+ *
+ * @see _openruth_set_holdings(),
+ */
+function _openruth_filter_blacked($ele) {
+  return is_string($ele);
 }

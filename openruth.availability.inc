@@ -9,6 +9,7 @@ function openruth_availability_holdings($provider_ids) {
     watchdog('openruth', '@method error: “@message”', array('@method' => 'get_holdings', '@message' => $res->holding), WATCHDOG_ERROR);
     return array();
   }
+
   return _openruth_get_holdings($res);
 }
 
@@ -34,6 +35,8 @@ function _openruth_get_holdings($res) {
  */
 function _openruth_set_holdings($res) {
   $holdings = array();
+  $blacked_placements = array_filter(variable_get('openruth_blacked_placements', array()), '_openruth_filter_blacked');
+
   foreach ($res->holding as $holding) {
     $h = _openruth_init_holding($holding);
     $itemHoldings = isset($holding->itemHoldings) ? $holding->itemHoldings : NULL;
@@ -47,8 +50,8 @@ function _openruth_set_holdings($res) {
       foreach ($itemHoldings as $itemHolding) {
         // remember to count ordersCount
         $h['reserved_count'] += $itemHolding->ordersCount;
-        _openruth_set_locations($h, $itemHolding);
-        _openruth_set_periodicals($h, $itemHolding);
+        _openruth_set_locations($h, $itemHolding, $blacked_placements);
+        _openruth_set_periodicals($h, $itemHolding, $blacked_placements);
       }
     }
     if ($h['is_periodical']) {
@@ -117,8 +120,8 @@ function _openruth_set_table_html(&$h) {
   // set table header
   $variables['header'] = array(
     'placement' => t('Placement'),
-    'copies' => t('Copies'),
     'home' => t('At home'),
+    'copies' => t('Copies'),
   );
   // set table rows
   $variables['rows'] = _openruth_set_rows($h);
@@ -140,15 +143,15 @@ function _openruth_set_rows($h) {
     foreach ($h['holdings'] as $key => $data) {
       $row = array();
       $row['placement'] = $data['placement'];
-      $row['copies'] = $data['copiesCount'];
       $row['home'] = $data['copiesAvailableCount'];
+      $row['copies'] = $data['copiesCount'];
       $rows[] = $row;
     }
     // Add row (totals).
     $row = array();
     $row['data']['Library'] = t('Total');
-    $row['data']['Copies'] = $h['total_count'];
     $row['data']['Home'] = $h['reservable_count'];
+    $row['data']['Copies'] = $h['total_count'];
     $row['class'] = array(drupal_html_class('availability_holdings_last_row'));
     $rows[] = $row;
 
@@ -187,7 +190,7 @@ function _openruth_periodicals_unique_holdings($holdings) {
 /**
  *
  */
-function _openruth_set_periodicals(&$h, $itemHolding) {
+function _openruth_set_periodicals(&$h, $itemHolding, $blacked_placements) {
   if (isset($itemHolding->itemSerialPartId) || isset($itemHolding->itemSerialPartVolume) || isset($itemHolding->itemSerialPartIssue)) {
     $issue = array(
       'local_id' => $itemHolding->itemSerialPartId,
@@ -198,6 +201,10 @@ function _openruth_set_periodicals(&$h, $itemHolding) {
     $item_loc = isset($itemHolding->itemLocation) ? $itemHolding->itemLocation : $itemHolding->itemComingLocation;
 
     foreach ($item_loc as $location) {
+      if (in_array(strtolower($location->agencyBranchId->agencyBranchCode), $blacked_placements)) {
+        continue;
+      }
+
       $loc = array();
       if (isset($location->agencyBranchId->agencyBranchName)) {
         $loc[] = $location->agencyBranchId->agencyBranchName;
@@ -209,6 +216,10 @@ function _openruth_set_periodicals(&$h, $itemHolding) {
 
       if (isset($location->agencyPlacementId->agencyPlacementName)) {
         $loc[] = $location->agencyPlacementId->agencyPlacementName;
+      }
+
+      if (isset($location->agencyDepartmentId->agencyDepartmentName)) {
+        $loc[] = $location->agencyDepartmentId->agencyDepartmentName;
       }
 
       $issue['placement'][] = array(
@@ -225,15 +236,18 @@ function _openruth_set_periodicals(&$h, $itemHolding) {
   }
 }
 
-function _openruth_set_locations(&$h, $itemHolding) {
+function _openruth_set_locations(&$h, $itemHolding, $blacked_placements) {
   $holding_reservable = FALSE;
   $fields = array('itemLocation', 'itemComingLocation');
 
   foreach ($fields as $field) {
     if (isset($itemHolding->{$field})) {
       foreach ($itemHolding->{$field} as $itemLocation) {
-        $data = array();
+        if (in_array(strtolower($itemLocation->agencyBranchId->agencyBranchCode), $blacked_placements)) {
+          continue;
+        }
 
+        $data = array();
         $location_available = 0;
 
         if ($itemLocation->orderAllowed) {
@@ -251,7 +265,6 @@ function _openruth_set_locations(&$h, $itemHolding) {
           $location_available += $itemLocation->copiesAvailableCount;
 
           $data['copiesAvailableCount'] = $itemLocation->copiesAvailableCount;
-
         }
         $parts = array();
         if (isset($itemLocation->agencyBranchId->agencyBranchName)) {
