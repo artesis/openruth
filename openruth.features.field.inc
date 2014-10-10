@@ -10,7 +10,71 @@
 function openruth_field_default_fields() {
   $fields = array();
 
-  // Exported field: 'profile2-provider_openruth-field_openruth_interest_period'
+  // Exported field: 'profile2-provider_openruth-field_openruth_bon_by_email'.
+  $fields['profile2-provider_openruth-field_openruth_bon_by_email'] = array(
+    'field_config' => array(
+      'active' => '1',
+      'cardinality' => '1',
+      'deleted' => '0',
+      'entity_types' => array(),
+      'field_name' => 'field_openruth_bon_by_email',
+      'foreign keys' => array(),
+      'indexes' => array(
+        'value' => array(
+          0 => 'value',
+        ),
+      ),
+      'locked' => '0',
+      'module' => 'list',
+      'settings' => array(
+        'allowed_values' => array(
+          0 => '',
+          1 => '',
+        ),
+        'allowed_values_function' => '',
+        'profile2_private' => 1,
+      ),
+      'translatable' => '0',
+      'type' => 'list_boolean',
+    ),
+    'field_instance' => array(
+      'bundle' => 'provider_openruth',
+      'default_value' => array(
+        0 => array(
+          'value' => 0,
+        ),
+      ),
+      'deleted' => '0',
+      'description' => '',
+      'display' => array(
+        'default' => array(
+          'label' => 'above',
+          'module' => 'list',
+          'settings' => array(),
+          'type' => 'list_default',
+          'weight' => 4,
+        ),
+      ),
+      'entity_type' => 'profile2',
+      'field_name' => 'field_openruth_bon_by_email',
+      'label' => 'Send receipt by email',
+      'required' => 0,
+      'settings' => array(
+        'user_register_form' => FALSE,
+      ),
+      'widget' => array(
+        'active' => 1,
+        'module' => 'options',
+        'settings' => array(
+          'display_label' => 1,
+        ),
+        'type' => 'options_onoff',
+        'weight' => '5',
+      ),
+    ),
+  );
+
+  // Exported field: 'profile2-provider_openruth-field_openruth_interest_period'.
   $fields['profile2-provider_openruth-field_openruth_interest_period'] = array(
     'field_config' => array(
       'active' => '1',
@@ -24,6 +88,7 @@ function openruth_field_default_fields() {
           0 => 'value',
         ),
       ),
+      'locked' => '0',
       'module' => 'list',
       'settings' => array(
         'allowed_values' => array(
@@ -73,7 +138,7 @@ function openruth_field_default_fields() {
     ),
   );
 
-  // Exported field: 'profile2-provider_openruth-field_openruth_mobile_phone'
+  // Exported field: 'profile2-provider_openruth-field_openruth_mobile_phone'.
   $fields['profile2-provider_openruth-field_openruth_mobile_phone'] = array(
     'field_config' => array(
       'active' => '1',
@@ -94,6 +159,7 @@ function openruth_field_default_fields() {
           0 => 'format',
         ),
       ),
+      'locked' => '0',
       'module' => 'text',
       'settings' => array(
         'max_length' => '255',
@@ -136,7 +202,7 @@ function openruth_field_default_fields() {
     ),
   );
 
-  // Exported field: 'profile2-provider_openruth-field_reservation_pause'
+  // Exported field: 'profile2-provider_openruth-field_reservation_pause'.
   $fields['profile2-provider_openruth-field_reservation_pause'] = array(
     'field_config' => array(
       'active' => '1',
@@ -146,6 +212,7 @@ function openruth_field_default_fields() {
       'field_name' => 'field_reservation_pause',
       'foreign keys' => array(),
       'indexes' => array(),
+      'locked' => '0',
       'module' => 'date',
       'settings' => array(
         'granularity' => array(
@@ -215,7 +282,7 @@ function openruth_field_default_fields() {
     ),
   );
 
-  // Exported field: 'profile2-provider_openruth-openruth_preferred_branch'
+  // Exported field: 'profile2-provider_openruth-openruth_preferred_branch'.
   $fields['profile2-provider_openruth-openruth_preferred_branch'] = array(
     'field_config' => array(
       'active' => '1',
@@ -229,6 +296,7 @@ function openruth_field_default_fields() {
           0 => 'value',
         ),
       ),
+      'locked' => '0',
       'module' => 'list',
       'settings' => array(
         'allowed_values' => array(),
@@ -277,6 +345,7 @@ function openruth_field_default_fields() {
   t('Preferred branch');
   t('Reservation pause');
   t('Select preferred pickup branch');
+  t('Send receipt by email');
   t('Set your reservations on pause');
   t('Your mobile phone');
 
