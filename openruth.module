@@ -381,7 +381,7 @@ function openruth_profile2_presave($profile2) {
   if (!empty($profile2->original->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']])) {
     if (isset($profile2->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value'])) {
       if ($profile2->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value'] !=
-      $profile2->original->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value']) {
+          $profile2->original->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value']) {
         $changes['mobile_phone'] = $profile2->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value'];
       }
     }
