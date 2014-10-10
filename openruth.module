@@ -381,8 +381,20 @@ function openruth_profile2_presave($profile2) {
   if (!empty($profile2->original->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']])) {
     if (isset($profile2->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value'])) {
       if ($profile2->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value'] !=
-	   $profile2->original->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value']) {
+      $profile2->original->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value']) {
         $changes['mobile_phone'] = $profile2->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value'];
+      }
+    }
+  }
+
+  // Bon by email.
+  $origin_bill_by_mail = $profile2->original->field_openruth_bon_by_email[$langs['field_openruth_bon_by_email']];
+  $new_bill_by_mail = $profile2->field_openruth_bon_by_email[$langs['field_openruth_bon_by_email']];
+  if (!empty($origin_bill_by_mail)) {
+    if (isset($new_bill_by_mail)) {
+      if ($origin_bill_by_mail[0]['value'] != $new_bill_by_mail[0]['value']) {
+        $bill_by_mail = ($new_bill_by_mail[0]['value'] == '1') ? TRUE : FALSE;
+        $changes['bon_by_email'] = $bill_by_mail;
       }
     }
   }
