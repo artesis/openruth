@@ -49,10 +49,9 @@ function openruth_field_default_fields() {
       'display' => array(
         'default' => array(
           'label' => 'above',
-          'module' => 'list',
           'settings' => array(),
-          'type' => 'list_default',
-          'weight' => 4,
+          'type' => 'hidden',
+          'weight' => '4',
         ),
       ),
       'entity_type' => 'profile2',
@@ -115,10 +114,9 @@ function openruth_field_default_fields() {
       'display' => array(
         'default' => array(
           'label' => 'above',
-          'module' => 'list',
           'settings' => array(),
           'type' => 'hidden',
-          'weight' => 1,
+          'weight' => '1',
         ),
       ),
       'entity_type' => 'profile2',
@@ -176,10 +174,9 @@ function openruth_field_default_fields() {
       'display' => array(
         'default' => array(
           'label' => 'above',
-          'module' => 'text',
           'settings' => array(),
           'type' => 'hidden',
-          'weight' => 3,
+          'weight' => '3',
         ),
       ),
       'entity_type' => 'profile2',
@@ -239,17 +236,9 @@ function openruth_field_default_fields() {
       'display' => array(
         'default' => array(
           'label' => 'above',
-          'module' => 'date',
-          'settings' => array(
-            'format_type' => 'long',
-            'fromto' => 'both',
-            'multiple_from' => '',
-            'multiple_number' => '',
-            'multiple_to' => '',
-            'show_repeat_rule' => 'show',
-          ),
+          'settings' => array(),
           'type' => 'hidden',
-          'weight' => 2,
+          'weight' => '2',
         ),
       ),
       'entity_type' => 'profile2',
@@ -314,10 +303,9 @@ function openruth_field_default_fields() {
       'display' => array(
         'default' => array(
           'label' => 'above',
-          'module' => 'list',
           'settings' => array(),
           'type' => 'hidden',
-          'weight' => 0,
+          'weight' => '0',
         ),
       ),
       'entity_type' => 'profile2',
