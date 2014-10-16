@@ -321,6 +321,11 @@ function openruth_profile_update($profile, $userinfo) {
     $profile->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value'] = isset($userinfo->userMobilePhone) ? $userinfo->userMobilePhone : '';
   }
 
+  // Send bill by email.
+  if (isset($profile->field_openruth_bon_by_email)) {
+    $send_bill_by_email = filter_var($userinfo->userBonPrintAsEmail, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+    $profile->field_openruth_bon_by_email[$langs['field_openruth_bon_by_email']][0]['value'] = $send_bill_by_email;
+  }
 }
 
 /**
@@ -447,6 +452,7 @@ function openruth_user_view($account, $view_mode, $langcode) {
       'userVillage',
       'userTelephone',
       'userMobilePhone',
+      'userBonPrintAsEmail',
     );
     foreach ($props as $prop) {
       $data[$prop] = isset($userinfo->$prop) ? $userinfo->$prop : '';
@@ -541,6 +547,32 @@ function openruth_set_profile2_fields($account) {
       '#markup' => '<span>' . $reservation_pause['stop'] . '</span>',
     );
   }
+
+  $send_bill_by_email = openruth_get_send_bill_by_email($profile2);
+  if ($send_bill_by_email) {
+    $account->content['profile2']['bon_by_email'] = array(
+      '#type' => 'item',
+      '#title' => t('Send receipt by email'),
+      '#markup' => '<span>' . $send_bill_by_email . '<span>',
+    );
+  }
+}
+
+/**
+ * Return current send bill by email state.
+ *
+ * @param $profile2
+ *  profile2 object from which we get send by email state.
+ * @return bool|null|string
+ */
+function openruth_get_send_bill_by_email($profile2) {
+  $langs = field_language('profile2', $profile2);
+  if (empty($profile2->field_openruth_bon_by_email)) {
+    return FALSE;
+  }
+
+  $send_bill_by_email = $profile2->field_openruth_bon_by_email[$langs['field_openruth_bon_by_email']][0]['value'];
+  return ($send_bill_by_email == 1) ? t('Yes') : t('No');
 }
 
 /**
