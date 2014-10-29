@@ -11,25 +11,27 @@ include_once('openruth.features.inc');
  * Implement hook_ding_provider().
  */
 function openruth_ding_provider() {
+  $path = drupal_get_path('module', 'openruth');
+
   return array(
     'title' => 'Openruth',
     'settings' => 'openruth_settings_form',
     'provides' => array(
       'availability' => array(
         'prefix' => 'availability',
-        'file' => drupal_get_path('module', 'openruth') . '/openruth.availability.inc',
+        'file' => $path . '/openruth.availability.inc',
       ),
       'user' => array(
         'prefix' => 'user',
-        'file' => drupal_get_path('module', 'openruth') . '/openruth.user.inc',
+        'file' => $path . '/openruth.user.inc',
       ),
       'reservation' => array(
         'prefix' => 'reservation',
-        'file' => drupal_get_path('module', 'openruth') . '/openruth.reservation.inc',
+        'file' => $path . '/openruth.reservation.inc',
       ),
       'loan' => array(
         'prefix' => 'loan',
-        'file' => drupal_get_path('module', 'openruth') . '/openruth.loan.inc',
+        'file' => $path . '/openruth.loan.inc',
       ),
       'ill' => array(
         'prefix' => 'ill',
@@ -37,7 +39,11 @@ function openruth_ding_provider() {
       ),
       'debt' => array(
         'prefix' => 'debt',
-        'file' => drupal_get_path('module', 'openruth') . '/openruth.debt.inc',
+        'file' => $path . '/openruth.debt.inc',
+      ),
+      'wayf' => array(
+        'prefix' => 'wayf',
+        'file' => $path . '/openruth.wayf.inc',
       ),
     ),
   );
