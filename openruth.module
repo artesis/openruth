@@ -330,7 +330,16 @@ function openruth_profile_update($profile, $userinfo) {
   // Send bill by email.
   if (isset($profile->field_openruth_bon_by_email)) {
     $send_bill_by_email = filter_var($userinfo->userBonPrintAsEmail, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-    $profile->field_openruth_bon_by_email[$langs['field_openruth_bon_by_email']][0]['value'] = $send_bill_by_email;
+    $profile->field_openruth_bon_by_email[$langs['field_openruth_bon_by_email']][0]['value'] = $send_bill_by_email ? 1 : 0;
+  }
+
+  if (isset($profile->field_openruth_letter_language)) {
+    $available_codes = $userinfo->userLetterLanguageCodes->userLetterLanguageCode;
+    $field = field_info_field('field_openruth_letter_language');
+    $field['settings']['allowed_values'] = array_combine($available_codes,$available_codes);
+    field_update_field($field);
+
+    $profile->field_openruth_letter_language[$langs['field_openruth_letter_language']][0]['value'] = $userinfo->userLetterLanguage;
   }
 }
 
@@ -410,6 +419,17 @@ function openruth_profile2_presave($profile2) {
     }
   }
 
+  // Letter language.
+  $original_letter_language = $profile2->original->field_openruth_letter_language[$langs['field_openruth_letter_language']];
+  $new_letter_language = $profile2->field_openruth_letter_language[$langs['field_openruth_letter_language']];
+  if (!empty($original_letter_language)) {
+    if (isset($new_letter_language[0]['value'])) {
+      if ($original_letter_language[0]['value'] != $new_letter_language[0]['value']) {
+        $changes['letter_language'] = $new_letter_language;
+      }
+    }
+  }
+
   if (empty($changes)) {
     return;
   }
@@ -459,6 +479,7 @@ function openruth_user_view($account, $view_mode, $langcode) {
       'userTelephone',
       'userMobilePhone',
       'userBonPrintAsEmail',
+      'userLetterLanguage',
     );
     foreach ($props as $prop) {
       $data[$prop] = isset($userinfo->$prop) ? $userinfo->$prop : '';
@@ -562,6 +583,15 @@ function openruth_set_profile2_fields($account) {
       '#markup' => '<span>' . $send_bill_by_email . '<span>',
     );
   }
+
+  $letter_language = openruth_get_letter_language($profile2);
+  if ($letter_language) {
+    $account->content['profile2']['letter_language'] = array(
+      '#type' => 'item',
+      '#title' => t('Letter language'),
+      '#markup' => '<span>' . $letter_language . '<span>',
+    );
+  }
 }
 
 /**
@@ -582,6 +612,24 @@ function openruth_get_send_bill_by_email($profile2) {
 }
 
 /**
+ * Return letter language setting.
+ *
+ * @param $profile2
+ *   profile2 object from which we get letter language settting.
+ * @return mixed
+ *   Actual letter language setting string, FALSE on error.
+ */
+function openruth_get_letter_language($profile2) {
+  $langs = field_language('profile2', $profile2);
+  if (empty($profile2->field_openruth_letter_language)) {
+    return FALSE;
+  }
+
+  $letter_language = $profile2->field_openruth_letter_language[$langs['field_openruth_letter_language']][0]['value'];
+  return $letter_language;
+}
+
+/**
  * Get profile2 field; field_openruth_mobile_phone
  */
 function openruth_get_mobile_phone($profile2) {
@@ -594,7 +642,6 @@ function openruth_get_mobile_phone($profile2) {
   $mob = $profile2->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value'];
   return $mob;
 }
-
 
 /**
  * Get profile2 field; field_openruth_interest_period

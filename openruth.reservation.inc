@@ -34,7 +34,7 @@ function openruth_reservation_list($account) {
       foreach ($status->orders->orderReady as $res) {
         $result[$res->orderId] = new DingProviderReservation($res->orderId, array(
           'order_id' => $res->orderId,
-          'ding_entity_id' => variable_get('ting_agency', '') . ':' . $res->itemId,
+          'ding_entity_id' => $res->itemId,
           'display_name' => $res->itemDisplayTitle,
           // For some reason, we might not get a pickup date back.
           'pickup_date' => (!empty($res->orderPickUpDate)) ? $res->orderPickUpDate : NULL,
@@ -55,7 +55,7 @@ function openruth_reservation_list($account) {
       foreach ($status->orders->orderNotReady as $res) {
         $result[$res->orderId] = new DingProviderReservation($res->orderId, array(
           'order_id' => $res->orderId,
-          'ding_entity_id' => variable_get('ting_agency', '') . ':' . $res->itemId,
+          'ding_entity_id' => $res->itemId,
           'display_name' => $res->itemDisplayTitle,
           'pickup_order_id' => (!empty($res->orderPickUpId)) ? $res->orderPickUpId : NULL,
           'pickup_branch_id' => $res->agencyCounter,
@@ -74,7 +74,7 @@ function openruth_reservation_list($account) {
       foreach ($status->illOrders->illOrder as $res) {
         $result[$res->orderId] = new DingProviderReservation($res->orderId, array(
           'order_id' => $res->orderId,
-          'ding_entity_id' => variable_get('ting_agency', '') . ':' . $res->itemId,
+          'ding_entity_id' => $res->itemId,
           'display_name' => $res->itemDisplayTitle,
           'pickup_branch_id' => $res->agencyCounter,
           'expiry' => $res->orderLastInterestDate,

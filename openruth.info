@@ -14,6 +14,7 @@ configure = admin/config/ding/provider/openruth
 features[features_api][] = api:1
 features[field][] = profile2-provider_openruth-field_openruth_bon_by_email
 features[field][] = profile2-provider_openruth-field_openruth_interest_period
+features[field][] = profile2-provider_openruth-field_openruth_letter_language
 features[field][] = profile2-provider_openruth-field_openruth_mobile_phone
 features[field][] = profile2-provider_openruth-field_reservation_pause
 features[field][] = profile2-provider_openruth-openruth_preferred_branch
