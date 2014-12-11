@@ -425,7 +425,7 @@ function openruth_profile2_presave($profile2) {
   if (!empty($original_letter_language)) {
     if (isset($new_letter_language[0]['value'])) {
       if ($original_letter_language[0]['value'] != $new_letter_language[0]['value']) {
-        $changes['letter_language'] = $new_letter_language;
+        $changes['letter_language'] = $new_letter_language[0]['value'];
       }
     }
   }
