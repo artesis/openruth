@@ -338,6 +338,8 @@ class OpenruthClient {
       'preferred_branch' => 'agencyCounter',
       'reservation_pause_start' => 'userAbsenceStartDate',
       'reservation_pause_stop' => 'userAbsenceEndDate',
+      'bon_by_email' => 'userBonPrintAsEmail',
+      'letter_language' => 'userLetterLanguage',
     );
     $args = array(
       'agencyId' => $this->agency_id,

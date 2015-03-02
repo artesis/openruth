@@ -34,7 +34,7 @@ function openruth_reservation_list($account) {
       foreach ($status->orders->orderReady as $res) {
         $result[$res->orderId] = new DingProviderReservation($res->orderId, array(
           'order_id' => $res->orderId,
-          'ding_entity_id' => variable_get('ting_agency', '') . ':' . $res->itemId,
+          'ding_entity_id' => $res->itemId,
           'display_name' => $res->itemDisplayTitle,
           // For some reason, we might not get a pickup date back.
           'pickup_date' => (!empty($res->orderPickUpDate)) ? $res->orderPickUpDate : NULL,
@@ -55,7 +55,7 @@ function openruth_reservation_list($account) {
       foreach ($status->orders->orderNotReady as $res) {
         $result[$res->orderId] = new DingProviderReservation($res->orderId, array(
           'order_id' => $res->orderId,
-          'ding_entity_id' => variable_get('ting_agency', '') . ':' . $res->itemId,
+          'ding_entity_id' => $res->itemId,
           'display_name' => $res->itemDisplayTitle,
           'pickup_order_id' => (!empty($res->orderPickUpId)) ? $res->orderPickUpId : NULL,
           'pickup_branch_id' => $res->agencyCounter,
@@ -74,14 +74,14 @@ function openruth_reservation_list($account) {
       foreach ($status->illOrders->illOrder as $res) {
         $result[$res->orderId] = new DingProviderReservation($res->orderId, array(
           'order_id' => $res->orderId,
-          'ding_entity_id' => variable_get('ting_agency', '') . ':' . $res->itemId,
+          'ding_entity_id' => $res->itemId,
           'display_name' => $res->itemDisplayTitle,
           'pickup_branch_id' => $res->agencyCounter,
           'expiry' => $res->orderLastInterestDate,
           'created' => $res->orderDate,
-          'author' => $res->itemAuthor,
+          'author' => !empty($res->itemAuthor) ? $res->itemAuthor : '',
           'title' => $res->itemTitle,
-          'publication_year' => $res->itemPublicationYear,
+          'publication_year' => !empty($res->itemPublicationYear) ? $res->itemPublicationYear : '',
           'ill_status' => $res->illStatus,
           'notes' => isset($res->itemSerialPartTitle) ? $res->itemSerialPartTitle : '',
         ));
@@ -166,15 +166,18 @@ function openruth_reservation_options_submit($type, $account, $reservables, $val
  */
 function openruth_reservation_create($account, $id, $options) {
   $branch = $options['openruth_preferred_branch'];
+  $interest_period = $options['openruth_interest_period'];
 
   // get interest period from profile2
-  if ($profile2 = profile2_load_by_user($account, 'provider_openruth')) {
+  $profile2 = profile2_load_by_user($account, 'provider_openruth');
+  if (empty($interest_period) && !empty($profile2)) {
     $langs = field_language('profile2', $profile2);
     if (isset($profile2->field_openruth_interest_period)) {
       $interest_period = $profile2->field_openruth_interest_period[$langs['field_openruth_interest_period']][0]['value'];
-      $expiry = REQUEST_TIME + ($interest_period * 24 * 60 * 60);
     }
   }
+
+  $expiry = REQUEST_TIME + ($interest_period * 24 * 60 * 60);
 
   if (!isset($expiry)) {
     $expiry = REQUEST_TIME + DING_RESERVATION_DEFAULT_INTEREST_PERIOD;

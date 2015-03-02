@@ -11,29 +11,39 @@ include_once('openruth.features.inc');
  * Implement hook_ding_provider().
  */
 function openruth_ding_provider() {
+  $path = drupal_get_path('module', 'openruth');
+
   return array(
     'title' => 'Openruth',
     'settings' => 'openruth_settings_form',
     'provides' => array(
       'availability' => array(
         'prefix' => 'availability',
-        'file' => drupal_get_path('module', 'openruth') . '/openruth.availability.inc',
+        'file' => $path . '/openruth.availability.inc',
       ),
       'user' => array(
         'prefix' => 'user',
-        'file' => drupal_get_path('module', 'openruth') . '/openruth.user.inc',
+        'file' => $path . '/openruth.user.inc',
       ),
       'reservation' => array(
         'prefix' => 'reservation',
-        'file' => drupal_get_path('module', 'openruth') . '/openruth.reservation.inc',
+        'file' => $path . '/openruth.reservation.inc',
       ),
       'loan' => array(
         'prefix' => 'loan',
+        'file' => $path . '/openruth.loan.inc',
+      ),
+      'ill' => array(
+        'prefix' => 'ill',
         'file' => drupal_get_path('module', 'openruth') . '/openruth.loan.inc',
       ),
       'debt' => array(
         'prefix' => 'debt',
-        'file' => drupal_get_path('module', 'openruth') . '/openruth.debt.inc',
+        'file' => $path . '/openruth.debt.inc',
+      ),
+      'wayf' => array(
+        'prefix' => 'wayf',
+        'file' => $path . '/openruth.wayf.inc',
       ),
     ),
   );
@@ -115,7 +125,7 @@ function openruth_profile_form_validate(&$form, &$form_state) {
  *
  * This is a regular form callback.
  */
-function openruth_settings_form() {
+function openruth_settings_form($form, $form_state) {
   $form['openruth'] = array(
     '#type' => 'fieldset',
     '#title' => t('OpenRuth service settings'),
@@ -151,7 +161,65 @@ function openruth_settings_form() {
     '#description' => t('Logs requests to the OpenRuth webservice. Sensitive information such as CPR number and PIN code is stripped from the requests.'),
   );
 
+  $form['openruth']['blacklist'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Placement blacklist'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+
+  $placements = array();
+  $cid = 'ruth-placements';
+  $buffed_placements = cache_get($cid);
+
+  if ($buffed_placements) {
+    $placements = $buffed_placements->data;
+  }
+
+  if (isset($form_state['triggering_element']) && $form_state['triggering_element']['#name'] == 'fetch-placements') {
+    $placements = openruth_allowed_branches();
+    cache_set($cid, $placements);
+  }
+
+  // Avoid different casing issues.
+  foreach ($placements as $k => $placement) {
+    unset($placements[$k]);
+
+    $placements[strtolower($k)] = $placement;
+  }
+
+  $form['openruth']['blacklist']['openruth_blacked_placements'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Placements'),
+    '#description' => t('Select which placements are to be HIDDEN'),
+    '#options' => $placements,
+    '#default_value' => variable_get('openruth_blacked_placements', array()),
+    '#prefix' => '<div id="openruth-placements">',
+    '#suffix' => '</div>',
+  );
+
+  $form['openruth']['blacklist']['fetch_placements'] = array(
+    '#type' => 'button',
+    '#name' => 'fetch-placements',
+    '#value' => t('Fetch/Update placements'),
+    '#ajax' => array(
+      'method' => 'replace',
+      'wrapper' => 'openruth-placements',
+      'effect' => 'fade',
+      'callback' => '_openruth_fetch_placements',
+    ),
+  );
+
   return system_settings_form($form);
+}
+
+/**
+ * AJAX callback for placements insertion.
+ *
+ * @see openruth_settings_form(),
+ */
+function _openruth_fetch_placements(&$form, &$form_state) {
+  return $form['openruth']['blacklist']['openruth_blacked_placements'];
 }
 
 /**
@@ -259,6 +327,20 @@ function openruth_profile_update($profile, $userinfo) {
     $profile->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value'] = isset($userinfo->userMobilePhone) ? $userinfo->userMobilePhone : '';
   }
 
+  // Send bill by email.
+  if (isset($profile->field_openruth_bon_by_email)) {
+    $send_bill_by_email = filter_var($userinfo->userBonPrintAsEmail, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+    $profile->field_openruth_bon_by_email[$langs['field_openruth_bon_by_email']][0]['value'] = $send_bill_by_email ? 1 : 0;
+  }
+
+  if (isset($profile->field_openruth_letter_language)) {
+    $available_codes = $userinfo->userLetterLanguageCodes->userLetterLanguageCode;
+    $field = field_info_field('field_openruth_letter_language');
+    $field['settings']['allowed_values'] = array_combine($available_codes,$available_codes);
+    field_update_field($field);
+
+    $profile->field_openruth_letter_language[$langs['field_openruth_letter_language']][0]['value'] = $userinfo->userLetterLanguage;
+  }
 }
 
 /**
@@ -319,12 +401,32 @@ function openruth_profile2_presave($profile2) {
   if (!empty($profile2->original->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']])) {
     if (isset($profile2->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value'])) {
       if ($profile2->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value'] !=
-	   $profile2->original->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value']) {
+          $profile2->original->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value']) {
         $changes['mobile_phone'] = $profile2->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value'];
       }
     }
-    else {
-      $changes['mobile_phone'] = '';
+  }
+
+  // Bon by email.
+  $origin_bill_by_mail = $profile2->original->field_openruth_bon_by_email[$langs['field_openruth_bon_by_email']];
+  $new_bill_by_mail = $profile2->field_openruth_bon_by_email[$langs['field_openruth_bon_by_email']];
+  if (!empty($origin_bill_by_mail)) {
+    if (isset($new_bill_by_mail)) {
+      if ($origin_bill_by_mail[0]['value'] != $new_bill_by_mail[0]['value']) {
+        $bill_by_mail = ($new_bill_by_mail[0]['value'] == '1') ? TRUE : FALSE;
+        $changes['bon_by_email'] = $bill_by_mail;
+      }
+    }
+  }
+
+  // Letter language.
+  $original_letter_language = $profile2->original->field_openruth_letter_language[$langs['field_openruth_letter_language']];
+  $new_letter_language = $profile2->field_openruth_letter_language[$langs['field_openruth_letter_language']];
+  if (!empty($original_letter_language)) {
+    if (isset($new_letter_language[0]['value'])) {
+      if ($original_letter_language[0]['value'] != $new_letter_language[0]['value']) {
+        $changes['letter_language'] = $new_letter_language[0]['value'];
+      }
     }
   }
 
@@ -376,6 +478,8 @@ function openruth_user_view($account, $view_mode, $langcode) {
       'userVillage',
       'userTelephone',
       'userMobilePhone',
+      'userBonPrintAsEmail',
+      'userLetterLanguage',
     );
     foreach ($props as $prop) {
       $data[$prop] = isset($userinfo->$prop) ? $userinfo->$prop : '';
@@ -470,6 +574,59 @@ function openruth_set_profile2_fields($account) {
       '#markup' => '<span>' . $reservation_pause['stop'] . '</span>',
     );
   }
+
+  $send_bill_by_email = openruth_get_send_bill_by_email($profile2);
+  if ($send_bill_by_email) {
+    $account->content['profile2']['bon_by_email'] = array(
+      '#type' => 'item',
+      '#title' => t('Send receipt by email'),
+      '#markup' => '<span>' . $send_bill_by_email . '<span>',
+    );
+  }
+
+  $letter_language = openruth_get_letter_language($profile2);
+  if ($letter_language) {
+    $account->content['profile2']['letter_language'] = array(
+      '#type' => 'item',
+      '#title' => t('Letter language'),
+      '#markup' => '<span>' . $letter_language . '<span>',
+    );
+  }
+}
+
+/**
+ * Return current send bill by email state.
+ *
+ * @param $profile2
+ *  profile2 object from which we get send by email state.
+ * @return bool|null|string
+ */
+function openruth_get_send_bill_by_email($profile2) {
+  $langs = field_language('profile2', $profile2);
+  if (empty($profile2->field_openruth_bon_by_email)) {
+    return FALSE;
+  }
+
+  $send_bill_by_email = $profile2->field_openruth_bon_by_email[$langs['field_openruth_bon_by_email']][0]['value'];
+  return ($send_bill_by_email == 1) ? t('Yes') : t('No');
+}
+
+/**
+ * Return letter language setting.
+ *
+ * @param $profile2
+ *   profile2 object from which we get letter language settting.
+ * @return mixed
+ *   Actual letter language setting string, FALSE on error.
+ */
+function openruth_get_letter_language($profile2) {
+  $langs = field_language('profile2', $profile2);
+  if (empty($profile2->field_openruth_letter_language)) {
+    return FALSE;
+  }
+
+  $letter_language = $profile2->field_openruth_letter_language[$langs['field_openruth_letter_language']][0]['value'];
+  return $letter_language;
 }
 
 /**
@@ -485,7 +642,6 @@ function openruth_get_mobile_phone($profile2) {
   $mob = $profile2->field_openruth_mobile_phone[$langs['field_openruth_mobile_phone']][0]['value'];
   return $mob;
 }
-
 
 /**
  * Get profile2 field; field_openruth_interest_period
@@ -562,41 +718,44 @@ function openruth_get_reservation_pause($profile2) {
 
 /**
  * Get user status.
- *
- * Session cached for efficiency.
- * @todo; should this be cached in drupal instead ?? there might be an issue if drupal cache is invalidated
  */
 function _openruth_user_status($creds = NULL, $reset = FALSE) {
-  // Flush cache if creds is not specified.
-  if ($reset || !is_array($_SESSION['openruth_user_status']) || !$creds) {
-    $_SESSION['openruth_user_status'] = array();
-  }
   if (!$creds) {
     return;
   }
 
-  $id = hash('sha512', $creds['name'] . $creds['pass']);
+  $cid = hash('sha512', $creds['name'] . $creds['pass']);
+  $cache = NULL;
 
-  if (!isset($_SESSION['openruth_user_status'][$id]) || $_SESSION['openruth_user_status'][$id]['time'] < (REQUEST_TIME - 300)) {
-    $status = openruth_client_invoke('user_status', $creds['name'], $creds['pass']);
-    if ($status && !is_string($status)) {
-      if (isset($status->userInfo) && isset($status->userInfo->userPinCode)) {
+  if ($reset) {
+    cache_clear_all($cid, 'cache');
+    drupal_static_reset(__FUNCTION__);
+  }
+
+  $status = &drupal_static(__FUNCTION__, NULL);
+  if (!$status) {
+    $cache = cache_get($cid, 'cache');
+    if (isset($cache->data)) {
+      $status = $cache->data;
+    }
+    else {
+      $status = openruth_client_invoke('user_status', $creds['name'], $creds['pass']);
+
+      if ($status && !is_string($status)) {
         // Don't cache user pass.
-        unset($status->userInfo->userPinCode);
+        if (isset($status->userInfo) && isset($status->userInfo->userPinCode)) {
+          unset($status->userInfo->userPinCode);
+        }
+
+        cache_set($cid, $status, 'cache', time() + 300);
       }
-      $_SESSION['openruth_user_status'][$id] = array(
-        'time' => REQUEST_TIME,
-        'data' => $status,
-      );
-    }
-    elseif (is_string($status)) {
-      watchdog('openruth', 'Error fetching user status @error', array('@error' => $status), WATCHDOG_ERROR);
-      return;
+      elseif (is_string($status)) {
+        watchdog('openruth', t('Error fetching user status @error'), array('@error' => $status), WATCHDOG_ERROR);
+      }
     }
   }
-  if ($_SESSION['openruth_user_status'][$id]) {
-    return $_SESSION['openruth_user_status'][$id]['data'];
-  }
+
+  return $status;
 }
 
 /**
@@ -616,18 +775,14 @@ function openruth_replace_entity($item) {
 
   if (is_object($openruth_object)) {
     $pseudo_ting_object = new TingEntity();
-    $pseudo_ting_object->localId = $faust_number;
-    $pseudo_ting_object->ding_entity_id = $item->ding_entity_id;
-    $pseudo_ting_object->reply = new TingClientObject();
-    $pseudo_ting_object->reply->record['dc:title']['dkdcplus:full'] = array($openruth_object->title);
+    $pseudo_ting_object->setLocalId($faust_number);
+    $pseudo_ting_object->setDingEntityId($item->ding_entity_id);
+    $pseudo_ting_object->setTitle($openruth_object->title);
     // Unfortunately, openruth response doesnt contain anything about the loaned item type.
     //$pseudo_ting_object->reply->record['dc:type']['dkdcplus:BibDK-Type'] = array();
-    $pseudo_ting_object->reply->record['dc:creator']['dkdcplus:aut'] = array($openruth_object->author);
-    $pseudo_ting_object->reply->record['dc:date'][''] = array($openruth_object->publication_year);
+    $pseudo_ting_object->setCreators(array($openruth_object->author));
+    $pseudo_ting_object->setDate($openruth_object->publication_year);
 
-    $pseudo_ting_object->ting_title = array(LANGUAGE_NONE => array(array('id' => $item->ding_entity_id)));
-    //$pseudo_ting_object->ting_type = array(LANGUAGE_NONE => array(array('id' => $item->ding_entity_id)));
-    $pseudo_ting_object->ting_author = array(LANGUAGE_NONE => array(array('id' => $item->ding_entity_id)));
     $pseudo_ting_object->ting_cover = array(LANGUAGE_NONE => array(array('local_id' => $item->ding_entity_id)));
     $pseudo_ting_object->ding_entity_type = 'ding_entity';
     $pseudo_ting_object->provider_id = $faust_number;
@@ -664,4 +819,13 @@ function openruth_seek_reserved_item($faust_number) {
   }
 
   return $item;
+}
+
+/**
+ * Helper function to filter blacked placements setted in BE.
+ *
+ * @see _openruth_set_holdings(),
+ */
+function _openruth_filter_blacked($ele) {
+  return is_string($ele);
 }
