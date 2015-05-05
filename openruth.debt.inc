@@ -10,9 +10,7 @@ function openruth_debt_list($account) {
 
   if (isset($status->fees->fee)) {
     foreach ($status->fees->fee as $res) {
-      // OpenRuth doesn't provide any unique id. Construct one.
-      $id = md5($res->feeDate . $res->agencyCounter . $res->itemDisplayTitle . $res->feeAmount . $res->feeAmountPaid . $res->feeType);
-      $result[$id] = new DingProviderDebt($res->feeDate, array(
+      $result[] = new DingProviderDebt($res->feeDate, array(
         'id' => $id,
         'date' => $res->feeDate,
         'display_name' => $res->itemDisplayTitle,
