@@ -122,6 +122,7 @@ function _openruth_set_table_html(&$h) {
     'placement' => t('Placement'),
     'home' => t('At home'),
     'copies' => t('Copies'),
+    'delivery_date' => t('Underway'),
   );
   // set table rows
   $variables['rows'] = _openruth_set_rows($h);
@@ -145,20 +146,21 @@ function _openruth_set_rows($h) {
       $row['placement'] = $data['placement'];
       $row['home'] = $data['copiesAvailableCount'];
       $row['copies'] = $data['copiesCount'];
+      $row['delivery_date'] = $data['delivery_date'];
       $rows[] = $row;
     }
     // Add row (totals).
     $row = array();
     $row['data']['Library'] = t('Total');
     $row['data']['Home'] = $h['reservable_count'];
-    $row['data']['Copies'] = $h['total_count'];
+    $row['data']['Copies'] = array('data' => $h['total_count'], 'colspan' => 2);
     $row['class'] = array(drupal_html_class('availability_holdings_last_row'));
     $rows[] = $row;
 
     // Add last row (reservations).
     $row = array();
     $row['data']['Library'] = t('Reservations');
-    $row['data']['Copies'] = array('data' => $h['reserved_count'], 'colspan' => 2);
+    $row['data']['Copies'] = array('data' => $h['reserved_count'], 'colspan' => 3);
     $rows[] = $row;
   }
 
@@ -227,6 +229,7 @@ function _openruth_set_periodicals(&$h, $itemHolding, $blacked_placements) {
         'available_count' => isset($location->copiesAvailableCount) ? $location->copiesAvailableCount : 0,
         'total_count' => $location->copiesCount,
         'reservable' => $location->orderAllowed,
+        'delivery_date' => $location->itemExpectedDeliveryDate,
       );
     }
 
@@ -265,6 +268,9 @@ function _openruth_set_locations(&$h, $itemHolding, $blacked_placements) {
           $location_available += $itemLocation->copiesAvailableCount;
 
           $data['copiesAvailableCount'] = $itemLocation->copiesAvailableCount;
+        }
+        if (isset($itemLocation->itemExpectedDeliveryDate)) {
+          $data['delivery_date'] = $itemLocation->itemExpectedDeliveryDate;
         }
         $parts = array();
         if (isset($itemLocation->agencyBranchId->agencyBranchName)) {
