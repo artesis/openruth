@@ -122,7 +122,7 @@ function _openruth_set_table_html(&$h) {
     'placement' => t('Placement'),
     'home' => t('At home'),
     'copies' => t('Copies'),
-    'delivery_date' => t('Underway'),
+    'delivery_date' => t('In process'),
   );
   // set table rows
   $variables['rows'] = _openruth_set_rows($h);
