@@ -49,7 +49,7 @@ function _openruth_set_holdings($res) {
     if (isset($itemHoldings)) {
       foreach ($itemHoldings as $itemHolding) {
         // remember to count ordersCount
-        $h['reserved_count'] += $itemHolding->ordersCount;
+        $h['reservation_count'] += $itemHolding->ordersCount;
         _openruth_set_locations($h, $itemHolding, $blacked_placements);
         _openruth_set_periodicals($h, $itemHolding, $blacked_placements);
       }
@@ -90,7 +90,7 @@ function _openruth_init_holding($holding) {
     'show_reservation_button' => $reservable,
     'holdings' => array(),
     'holdings_available' => array(),
-    'reserved_count' => isset($holding->ordersCount) ? (int) $holding->ordersCount : 0,
+    'reservation_count' => isset($holding->ordersCount) ? (int) $holding->ordersCount : 0,
     'total_count' => 0,
     'reservable_count' => 0,
     'issues' => array(),
@@ -160,7 +160,7 @@ function _openruth_set_rows($h) {
     // Add last row (reservations).
     $row = array();
     $row['data']['Library'] = t('Reservations');
-    $row['data']['Copies'] = array('data' => $h['reserved_count'], 'colspan' => 3);
+    $row['data']['Copies'] = array('data' => $h['reservation_count'], 'colspan' => 3);
     $rows[] = $row;
   }
 
